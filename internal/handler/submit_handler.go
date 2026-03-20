@@ -42,6 +42,7 @@ func (h *Handler) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.Tmpl.Execute(w, map[string]interface{}{
 		"HTMLVersion": result.HTMLVersion,
+		"Title":       result.Title,
 	}); err != nil {
 		log.Println("Template execution error:", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)

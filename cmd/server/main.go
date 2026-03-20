@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	handler "github.com/ArunGowrish/web-analyzer/internal/handler"
+	"github.com/ArunGowrish/web-analyzer/internal/service"
 )
 
 func main() {
@@ -14,7 +15,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to parse template:", err)
 	}
-	h := &handler.Handler{Tmpl: tmpl}
+	h := &handler.Handler{
+		Tmpl:     tmpl,
+		Analyzer: &service.AnalyzerService{},
+	}
 
 	// serve/load static folder
 	fs := http.FileServer(http.Dir("./static"))

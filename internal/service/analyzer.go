@@ -43,6 +43,7 @@ func (s *AnalyzerService) AnalyzeURL(url string) (*model.AnalysisResult, error) 
 	// Extract values
 	result := &model.AnalysisResult{
 		HTMLVersion: getHTMLVersion(doc),
+		Title:       getTitle(doc),
 	}
 
 	return result, nil
@@ -60,4 +61,18 @@ func getHTMLVersion(n *html.Node) string {
 		}
 	}
 	return "unknown"
+}
+
+// getHTMLVersion recursively traverses an HTML node tree to identify the DOCTYPE
+// and determine the Title of the document.
+func getTitle(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
+		return n.FirstChild.Data
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if title := getTitle(c); title != "" {
+			return title
+		}
+	}
+	return ""
 }

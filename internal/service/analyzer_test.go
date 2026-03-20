@@ -53,3 +53,40 @@ func TestAnalyzeURL_HTTPError(t *testing.T) {
 		t.Fatalf("expected fetch error, got %v", err)
 	}
 }
+
+func TestAnalyzeURL_InvalidHTML(t *testing.T) {
+	service := &AnalyzerService{
+		HTTPGet: func(url string) (*http.Response, error) {
+			// Simulate invalid HTML which fails parsing
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("<html></ht>")),
+				Header:     make(http.Header),
+			}, nil
+		},
+	}
+
+	response, err := service.AnalyzeURL("http://example.com")
+	HTMLVersion := response.HTMLVersion
+	if err == nil && HTMLVersion != "Unknown" {
+		t.Fatalf("expected HTML version Unknown, got %v", HTMLVersion)
+	}
+}
+
+func TestAnalyzeURL_ValidTitle(t *testing.T) {
+	service := &AnalyzerService{
+		HTTPGet: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader("<html><head><title>Test title</title></head></html>")),
+				Header:     make(http.Header),
+			}, nil
+		},
+	}
+
+	response, err := service.AnalyzeURL("http://example.com")
+	Title := response.Title
+	if err == nil && Title == "" {
+		t.Fatalf("expected Title from parsed html, got %v", Title)
+	}
+}
