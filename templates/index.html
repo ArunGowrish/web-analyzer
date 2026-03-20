@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Webpage Analyzer</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Webpage Analyzer</h1><br />
+        <p>Enter a URL to extract and analyze page details</p><br />
+        <form action="/submit" method="POST">
+            <input type="text" class="form__input" name="url" placeholder="Enter the url" />
+            <button type="submit">Submit</button>
+        </form>
+
+        {{if.Error}}
+        <label class="form__error">{{.Error}}</label>
+        {{end}}
+
+        {{if.HTMLVersion}}
+        <div class="tbl-header">
+            <table cellpadding="0" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+        <div class="tbl-content">
+            <table cellpadding="0" cellspacing="0">
+                <tbody>
+                    <tr>
+                        <td>HTML Version</td>
+                        <td>{{.HTMLVersion}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {{end}}
+    </div>
+</body>
+
+</html>
