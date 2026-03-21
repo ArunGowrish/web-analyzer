@@ -22,7 +22,7 @@ func (h *Handler) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	err := h.Tmpl.Execute(w, nil)
 	if err != nil {
 		log.Println("Template execution error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
 	}
 }
 
@@ -43,9 +43,10 @@ func (h *Handler) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	if err := h.Tmpl.Execute(w, map[string]interface{}{
 		"HTMLVersion": result.HTMLVersion,
 		"Title":       result.Title,
+		"Headings":    result.Headings,
 	}); err != nil {
 		log.Println("Template execution error:", err)
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
 		return
 	}
 }

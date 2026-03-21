@@ -40,10 +40,13 @@ func (s *AnalyzerService) AnalyzeURL(url string) (*model.AnalysisResult, error) 
 		return nil, errors.New("failed to parse HTML")
 	}
 
+	HeadingCounts := make(map[string]int)
+
 	// Extract values
 	result := &model.AnalysisResult{
 		HTMLVersion: getHTMLVersion(doc),
 		Title:       getTitle(doc),
+		Headings:    getHeadingsAndCount(doc, HeadingCounts),
 	}
 
 	return result, nil
@@ -75,4 +78,19 @@ func getTitle(n *html.Node) string {
 		}
 	}
 	return ""
+}
+
+// getHeadingsAndCount recursively traverses an HTML node tree to identify the DOCTYPE
+// and determine the headings and counts.
+func getHeadingsAndCount(n *html.Node, counts map[string]int) map[string]int {
+	if n.Type == html.ElementNode {
+		switch n.Data {
+		case "h1", "h2", "h3", "h4", "h5", "h6":
+			counts[n.Data]++
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		getHeadingsAndCount(c, counts)
+	}
+	return counts
 }

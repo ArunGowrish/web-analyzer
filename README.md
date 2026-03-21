@@ -26,6 +26,7 @@ http://localhost:8080
 
 ### Testing
 * go test ./internal/handler -v
+* go test ./internal/service -v
 * go test ./utils -v
 
 ## Project Structure

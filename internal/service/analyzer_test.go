@@ -67,9 +67,9 @@ func TestAnalyzeURL_InvalidHTML(t *testing.T) {
 	}
 
 	response, err := service.AnalyzeURL("http://example.com")
-	HTMLVersion := response.HTMLVersion
-	if err == nil && HTMLVersion != "Unknown" {
-		t.Fatalf("expected HTML version Unknown, got %v", HTMLVersion)
+	htmlVersion := response.HTMLVersion
+	if err == nil && htmlVersion != "Unknown" {
+		t.Fatalf("expected HTML version Unknown, got %v", htmlVersion)
 	}
 }
 
@@ -85,8 +85,46 @@ func TestAnalyzeURL_ValidTitle(t *testing.T) {
 	}
 
 	response, err := service.AnalyzeURL("http://example.com")
-	Title := response.Title
-	if err == nil && Title == "" {
-		t.Fatalf("expected Title from parsed html, got %v", Title)
+	title := response.Title
+	if err == nil && title == "" {
+		t.Fatalf("expected Title from parsed html, got %v", title)
+	}
+}
+
+func TestAnalyzeURL_ExtractHeadingsAndCounts(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+	<h1></h1>
+	<h2></h2><h2></h2>
+	<h3></h3><h3></h3><h3></h3>	<h3></h3>
+	<h4></h4><h4></h4><h4></h4><h4></h4>
+	<h5></h5><h5></h5><h5></h5>
+	<h6></h6><h6></h6>
+	</body></html>`
+
+	service := &AnalyzerService{
+		HTTPGet: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+	}
+	response, _ := service.AnalyzeURL("http://example.com")
+
+	mockHeadingsCountMap := map[string]int{
+		"h1": 1,
+		"h2": 2,
+		"h3": 4,
+		"h4": 4,
+		"h5": 3,
+		"h6": 2,
+	}
+	for k, v := range response.Headings {
+		headingsCountMapValue := mockHeadingsCountMap[k]
+		if v != headingsCountMapValue {
+			t.Fatalf("expected headings and count from parsed html %s: %v, got %s: %v", k, v, k, headingsCountMapValue)
+		}
 	}
 }
