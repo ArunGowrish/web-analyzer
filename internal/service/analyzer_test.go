@@ -146,3 +146,179 @@ func TestAnalyzeURL_ExtractHeadingsAndCounts(t *testing.T) {
 		}
 	}
 }
+
+func TestAnalyzeURL_ValidateNavigationLink(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<a href="javascript:"></a>
+		<a href="#"></a>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	link := response.Link
+	internalLinks := len(link.InternalLinks)
+	externalLinks := len(link.ExternalLinks)
+	if err == nil && internalLinks != 0 && externalLinks != 0 {
+		t.Fatalf("expected internal and external links count from url %d , got %v", 0, internalLinks+externalLinks)
+	}
+}
+
+func TestAnalyzeURL_ValidateInternalLinksCount(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<a href="http://example.com/about"></a>
+		<a href="/inventory"></a>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	link := response.Link
+	linkCount := len(link.InternalLinks)
+	if err == nil && len(link.InternalLinks) != 2 {
+		t.Fatalf("expected internal links count from url %d , got %v", 2, linkCount)
+	}
+}
+
+func TestAnalyzeURL_ValidateExternalLinksCount(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<a href="http://external.com/data"></a>
+		<a href="http://external.com/address"></a>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	link := response.Link
+	linkCount := len(link.ExternalLinks)
+	if err == nil && len(link.ExternalLinks) != 2 {
+		t.Fatalf("expected internal links count from url %d , got %v", 2, linkCount)
+	}
+}
+
+func TestAnalyzeURL_ValidateInAccesibleLinksCount(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<a href="http://xxx.com/"></a>
+		<a href="http://yyy.com/"></a>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return false
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	link := response.Link
+	linkCount := len(link.InAccessibleLinks)
+	if err == nil && linkCount != 2 {
+		t.Fatalf("expected in accessible links count from url %d , got %v", 2, linkCount)
+	}
+}
+
+func TestAnalyzeURL_LoginFormNotExist(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<form>
+			<input type="text" name="username">
+		</form>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	isLoginFormExist := response.LoginForm
+	if err == nil && !isLoginFormExist {
+		t.Fatalf("expected login form not exist in the webpage, got", isLoginFormExist)
+	}
+}
+
+func TestAnalyzeURL_LoginFormExist(t *testing.T) {
+	htmlContent := `<!DOCTYPE html>
+	<html><body>
+		<form>
+			<input type="text" name="username">
+			<input type="password" name="password">
+		</form>
+	</body></html>`
+
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
+			return &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(htmlContent)),
+				Header:     make(http.Header),
+			}, nil
+		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
+	}
+
+	service := NewAnalyzerService(mockClient)
+	response, err := service.AnalyzeURL("http://example.com")
+	isLoginFormExist := response.LoginForm
+	if err == nil && !isLoginFormExist {
+		t.Fatalf("expected a login form in the webpage, got %v", isLoginFormExist)
+	}
+}

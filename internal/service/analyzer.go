@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"log"
 	"net/url"
 	"strings"
 	"sync"
@@ -26,6 +27,7 @@ func NewAnalyzerService(httpClient client.HTTPClientInterface) *AnalyzerService 
 // AnalyzeURL takes a URL string, validates it, fetches the page, parses the HTML,
 // and returns an AnalysisResult containing the HTML version.
 func (a *AnalyzerService) AnalyzeURL(requestUrl string) (*model.AnalysisResult, error) {
+	log.Println("Analyze URL method invoked.")
 	// Validate URL
 	if msg := utils.IsUrlValid(requestUrl); msg != "" {
 		return nil, errors.New(msg)
@@ -49,15 +51,33 @@ func (a *AnalyzerService) AnalyzeURL(requestUrl string) (*model.AnalysisResult, 
 		return nil, errors.New("failed to parse URL")
 	}
 
+	htmlVersion := getHTMLVersion(doc)
+	log.Println("HTML version of the web page - ", htmlVersion)
+
+	title := getTitle(doc)
+	log.Println("Title version of the web page - ", title)
+
 	headingCounts := make(map[string]int)
+	headings := getHeadingsAndCount(doc, headingCounts)
+	log.Println("Headings of the web page - ", headings)
+
 	link := &model.Link{}
 	a.analyzeURL(doc, link, *baseURL)
+	log.Println(
+		"Internal links count from the web page - ", len(link.InternalLinks),
+		"External links count from the web page - ", len(link.ExternalLinks),
+		"In accessible links count from the web page - ", len(link.InAccessibleLinks),
+	)
+
+	isLoginForm := isPageContainsLoginForm(doc)
+	log.Println("Is login form exist in web page - ", isLoginForm)
 
 	result := &model.AnalysisResult{
-		HTMLVersion: getHTMLVersion(doc),
-		Title:       getTitle(doc),
-		Headings:    getHeadingsAndCount(doc, headingCounts),
+		HTMLVersion: htmlVersion,
+		Title:       title,
+		Headings:    headings,
 		Link:        *link,
+		LoginForm:   isLoginForm,
 	}
 
 	return result, nil
@@ -225,4 +245,56 @@ func (a *AnalyzerService) checkLinksConcurrently(urls []string) map[string]bool 
 
 	wg.Wait()
 	return results
+}
+
+// isPageContainsLoginForm traverses an HTML node tree to identify whether
+// page has any Login form.
+func isPageContainsLoginForm(n *html.Node) bool {
+	if n.Type == html.ElementNode && n.Data == "form" {
+		if isLoginForm(n) {
+			return true
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		if isPageContainsLoginForm(c) {
+			return true
+		}
+	}
+	return false
+}
+
+func isLoginForm(form *html.Node) bool {
+	hasUsernameField, hasPassword := scanForLoginForm(form)
+	return hasUsernameField && hasPassword
+}
+
+// Helper function to detect login form inside a <form> node
+func scanForLoginForm(n *html.Node) (bool, bool) {
+	hasUsernameField := false
+	hasPassword := false
+
+	if n.Type == html.ElementNode && n.Data == "input" {
+		inputType := strings.ToLower(getAttr(n, "type"))
+		switch inputType {
+		case "text", "email":
+			hasUsernameField = true
+		case "password":
+			hasPassword = true
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		username, password := scanForLoginForm(c)
+		hasUsernameField = hasUsernameField || username
+		hasPassword = hasPassword || password
+	}
+	return hasUsernameField, hasPassword
+}
+
+func getAttr(n *html.Node, key string) string {
+	for _, attr := range n.Attr {
+		if attr.Key == key {
+			return attr.Val
+		}
+	}
+	return ""
 }

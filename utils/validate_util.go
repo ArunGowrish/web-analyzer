@@ -42,10 +42,7 @@ func IdentifyHTMLVersion(doctype string) string {
 	case strings.Contains(d, "xhtml 1.1"):
 		return "XHTML 1.1"
 
-	case strings.Contains(d, "html"):
-		return "HTML5"
-
 	default:
-		return "Unknown"
+		return "HTML5"
 	}
 }

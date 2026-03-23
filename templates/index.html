@@ -70,21 +70,27 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Internal Links</td>
+                        <td>Internal Links Count</td>
                         <td>
                             {{ .InternalLinksCount }}
                         </td>
                     </tr>
                     <tr>
-                        <td>External Links</td>
+                        <td>External Links Count</td>
                         <td>
                             {{ .ExternalLinksCount }}
                         </td>
                     </tr>
                     <tr>
-                        <td>In Accessible Links</td>
+                        <td>Inaccessible Links Count</td>
                         <td>
                             {{ .InAssecessibleLinksCount }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Login Form Available</td>
+                        <td>
+                            {{ if .IsLoginForm }}Yes{{ else }}No{{ end }}
                         </td>
                     </tr>
                 </tbody>
