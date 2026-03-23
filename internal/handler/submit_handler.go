@@ -41,9 +41,12 @@ func (h *Handler) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.Tmpl.Execute(w, map[string]interface{}{
-		"HTMLVersion": result.HTMLVersion,
-		"Title":       result.Title,
-		"Headings":    result.Headings,
+		"HTMLVersion":              result.HTMLVersion,
+		"Title":                    result.Title,
+		"Headings":                 result.Headings,
+		"ExternalLinksCount":       len(result.Link.ExternalLinks),
+		"InternalLinksCount":       len(result.Link.InternalLinks),
+		"InAssecessibleLinksCount": len(result.Link.InAccessibleLinks),
 	}); err != nil {
 		log.Println("Template execution error:", err)
 		http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)

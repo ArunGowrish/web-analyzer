@@ -10,9 +10,14 @@
     <div class="container">
         <h1>Webpage Analyzer</h1><br>
         <p>Enter a URL to extract and analyze page details</p><br>
-        <form action="/submit" method="POST">
+
+        <div id="loading" style="display:none; text-align:center; margin-top:20px;">
+            <strong>Analyzing... please wait...</strong>
+        </div><br>
+
+        <form id="analyzeForm" action="/submit" method="POST">
             <input type="text" class="form__input" name="url" placeholder="Enter the url" />
-            <button type="submit">Submit</button>
+            <button id="submitBtn" type="submit">Submit</button>
         </form>
 
         {{ if.Error }}
@@ -64,11 +69,41 @@
                             </table>
                         </td>
                     </tr>
+                    <tr>
+                        <td>Internal Links</td>
+                        <td>
+                            {{ .InternalLinksCount }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>External Links</td>
+                        <td>
+                            {{ .ExternalLinksCount }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>In Accessible Links</td>
+                        <td>
+                            {{ .InAssecessibleLinksCount }}
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
         {{ end }}
     </div>
+
+    <script>
+        const form = document.getElementById('analyzeForm');
+        const loading = document.getElementById('loading');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', function () {
+            loading.style.display = 'block';
+            submitBtn.disabled = true;
+            submitBtn.innerText = 'Processing...';
+        });
+    </script>
 </body>
 
 </html>

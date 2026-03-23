@@ -2,33 +2,36 @@ package service
 
 import (
 	"errors"
-	"net/http"
+	"net/url"
+	"strings"
+	"sync"
 
 	"golang.org/x/net/html"
 
+	"github.com/ArunGowrish/web-analyzer/internal/client"
 	"github.com/ArunGowrish/web-analyzer/internal/model"
 	"github.com/ArunGowrish/web-analyzer/utils"
 )
 
 type AnalyzerService struct {
-	HTTPGet func(url string) (*http.Response, error)
+	HTTPClient *client.HTTPClient
+}
+
+func NewAnalyzerService(httpClient *client.HTTPClient) *AnalyzerService {
+	return &AnalyzerService{
+		HTTPClient: httpClient,
+	}
 }
 
 // AnalyzeURL takes a URL string, validates it, fetches the page, parses the HTML,
 // and returns an AnalysisResult containing the HTML version.
-func (s *AnalyzerService) AnalyzeURL(url string) (*model.AnalysisResult, error) {
+func (a *AnalyzerService) AnalyzeURL(requestUrl string) (*model.AnalysisResult, error) {
 	// Validate URL
-	if msg := utils.IsUrlValid(url); msg != "" {
+	if msg := utils.IsUrlValid(requestUrl); msg != "" {
 		return nil, errors.New(msg)
 	}
 
-	httpGetFunc := s.HTTPGet
-	if httpGetFunc == nil {
-		httpGetFunc = http.Get
-	}
-
-	// Fetch the URL
-	resp, err := httpGetFunc(url)
+	resp, err := a.HTTPClient.FetchResults(requestUrl)
 	if err != nil {
 		return nil, errors.New("failed to fetch URL")
 	}
@@ -40,13 +43,21 @@ func (s *AnalyzerService) AnalyzeURL(url string) (*model.AnalysisResult, error) 
 		return nil, errors.New("failed to parse HTML")
 	}
 
-	HeadingCounts := make(map[string]int)
+	// Find the domain from the url
+	baseURL, err := url.Parse(requestUrl)
+	if err != nil {
+		return nil, errors.New("failed to parse URL")
+	}
 
-	// Extract values
+	headingCounts := make(map[string]int)
+	link := &model.Link{}
+	a.analyzeURL(doc, link, *baseURL)
+
 	result := &model.AnalysisResult{
 		HTMLVersion: getHTMLVersion(doc),
 		Title:       getTitle(doc),
-		Headings:    getHeadingsAndCount(doc, HeadingCounts),
+		Headings:    getHeadingsAndCount(doc, headingCounts),
+		Link:        *link,
 	}
 
 	return result, nil
@@ -66,8 +77,8 @@ func getHTMLVersion(n *html.Node) string {
 	return "unknown"
 }
 
-// getHTMLVersion recursively traverses an HTML node tree to identify the DOCTYPE
-// and determine the Title of the document.
+// getHTMLVersion recursively traverses an HTML node tree to
+// determine the Title of the document.
 func getTitle(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "title" && n.FirstChild != nil {
 		return n.FirstChild.Data
@@ -80,8 +91,8 @@ func getTitle(n *html.Node) string {
 	return ""
 }
 
-// getHeadingsAndCount recursively traverses an HTML node tree to identify the DOCTYPE
-// and determine the headings and counts.
+// getHeadingsAndCount recursively traverses an HTML node tree to
+// determine the headings and counts.
 func getHeadingsAndCount(n *html.Node, counts map[string]int) map[string]int {
 	if n.Type == html.ElementNode {
 		switch n.Data {
@@ -93,4 +104,125 @@ func getHeadingsAndCount(n *html.Node, counts map[string]int) map[string]int {
 		getHeadingsAndCount(c, counts)
 	}
 	return counts
+}
+
+// Analyze url method to check the url whether internal, external and
+// it is accessible.
+func (a *AnalyzerService) analyzeURL(n *html.Node, link *model.Link,
+	baseURL url.URL) {
+
+	// Extract all links
+	a.extractLinks(n, link, baseURL)
+
+	links := append(link.InternalLinks, link.ExternalLinks...)
+
+	// Collect URLs
+	var urls []string
+	for _, l := range links {
+		urls = append(urls, l)
+	}
+
+	// Run concurrent check
+	results := a.checkLinksConcurrently(urls)
+
+	// Append results
+	for i, l := range links {
+		if !results[l] {
+			link.InAccessibleLinks = append(link.InAccessibleLinks, links[i])
+		}
+	}
+}
+
+// extractLinks recursively traverses an HTML node tree to
+// determine the external links.
+func (a *AnalyzerService) extractLinks(n *html.Node, link *model.Link,
+	baseURL url.URL) {
+	if n.Type == html.ElementNode && n.Data == "a" {
+		for _, attr := range n.Attr {
+			if attr.Key == "href" {
+				href := attr.Val
+
+				url, err := url.Parse(href)
+				if err != nil {
+					continue // skip -> no domain to find out internal or external link
+				}
+
+				if !isValidNavigationalLink(href) {
+					continue // skip
+				}
+
+				isExternalLink := isExternalLink(href) && compareDomains(url.Host, baseURL.Host)
+
+				// Treat not external links as internal links
+				var finalUrl string
+				if !isExternalLink {
+					finalUrl = baseURL.ResolveReference(url).String()
+					link.InternalLinks = append(link.InternalLinks, finalUrl)
+				} else {
+					finalUrl = href
+					link.ExternalLinks = append(link.ExternalLinks, finalUrl)
+				}
+			}
+		}
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		a.extractLinks(c, link, baseURL)
+	}
+}
+
+func isExternalLink(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+func compareDomains(domainFromLink string, domainFromRequestUrl string) bool {
+	return domainFromLink != "" && domainFromLink != domainFromRequestUrl
+}
+
+func isValidNavigationalLink(href string) bool {
+	if href == "" {
+		return false
+	}
+
+	hrefLower := strings.ToLower(href)
+
+	if strings.HasPrefix(hrefLower, "javascript:") ||
+		strings.HasPrefix(hrefLower, "#") ||
+		strings.HasPrefix(hrefLower, "mailto:") ||
+		strings.HasPrefix(hrefLower, "tel:") {
+		return false
+	}
+
+	return true
+}
+
+// Check the accessibility of links concurrently by pool of goroutines.
+func (a *AnalyzerService) checkLinksConcurrently(urls []string) map[string]bool {
+	results := make(map[string]bool)
+	var mu sync.Mutex
+
+	channels := make(chan string)
+	var wg sync.WaitGroup
+
+	worker := func() {
+		defer wg.Done()
+		for url := range channels {
+			ok := a.HTTPClient.IsLinkAccessible(url)
+
+			mu.Lock()
+			results[url] = ok
+			mu.Unlock()
+		}
+	}
+
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go worker()
+	}
+	for _, url := range urls {
+		channels <- url
+	}
+	close(channels)
+
+	wg.Wait()
+	return results
 }

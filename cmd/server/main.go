@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/ArunGowrish/web-analyzer/internal/client"
 	handler "github.com/ArunGowrish/web-analyzer/internal/handler"
 	"github.com/ArunGowrish/web-analyzer/internal/service"
 )
@@ -15,9 +16,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to parse template:", err)
 	}
+
+	httpClient := client.NewHTTPClient()
+
+	analyzerService := service.NewAnalyzerService(httpClient)
 	h := &handler.Handler{
 		Tmpl:     tmpl,
-		Analyzer: &service.AnalyzerService{},
+		Analyzer: analyzerService,
 	}
 
 	// serve/load static folder
