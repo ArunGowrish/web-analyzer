@@ -34,31 +34,41 @@ http://localhost:8080
 
 ## Project Structure
 
-web-analyzer/
-│
-├── cmd/
-│   └── server/
-│       └── main.go          # Application entry point
-│
-├── internal/
-│   ├── handler/
-│   │   └── submit_handler.go      # HTTP handlers
-│   │
-│   ├── service/
-│   │   └── analyzer.go     # Core analysis logic
-│
-├── utils/
-│   ├── validate_util.go    # Helper functions
-│
-├── templates/
-│   └── index.html          # User Interface
-│
-├── static/
-│   └── css/
-│       └── style.css       # User Interface Style
-│
-├── go.mod                  # Dependency tracking
-└── README.md
+```
+web-analyzer
+├─ cmd
+│  └─ server
+│     └─ main.go
+├─ configs
+├─ deployments
+├─ go.mod
+├─ go.sum
+├─ internal
+│  ├─ client
+│  │  ├─ http_client.go
+│  │  └─ http_client_test.go
+│  ├─ handler
+│  │  ├─ submit_handler.go
+│  │  └─ submit_handler_test.go
+│  ├─ mocks
+│  │  └─ http_client_mock.go
+│  ├─ model
+│  │  ├─ analysis_result.go
+│  │  └─ link.go
+│  └─ service
+│     ├─ analyzer.go
+│     └─ analyzer_test.go
+├─ README.md
+├─ static
+│  └─ css
+│     └─ style.css
+├─ templates
+│  └─ index.html
+└─ utils
+   ├─ validate_util.go
+   └─ validate_util_test.go
+
+```
 
 ## Architecture Overview
 
