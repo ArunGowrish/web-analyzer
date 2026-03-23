@@ -12,7 +12,7 @@ func IsUrlValid(urlFromRequest string) string {
 	}
 	parsedRequestUrl, err := url.ParseRequestURI(trimmedUrl)
 	if err != nil || parsedRequestUrl.Scheme == "" || parsedRequestUrl.Host == "" {
-		return "Invalid url"
+		return "Please enter a valid URL (e.g., https://example.com)"
 	}
 	return ""
 }
