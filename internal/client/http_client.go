@@ -1,6 +1,9 @@
 package client
 
 import (
+	"context"
+	"errors"
+	"log"
 	"net/http"
 	"time"
 )
@@ -23,11 +26,26 @@ func NewHTTPClient() *HTTPClient {
 }
 
 func (c *HTTPClient) IsLinkAccessible(url string) bool {
-	// Checks the metadata like StatusCode.
-	resp, err := c.Client.Head(url)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
 
-	if err != nil || resp.StatusCode >= 400 {
-		req, err := http.NewRequest("GET", url, nil)
+	// HEAD request - Checks the metadata like StatusCode.
+	req, err := http.NewRequestWithContext(ctx, "HEAD", url, nil)
+	if err != nil {
+		return false
+	}
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Println("Timeout when (HEAD): ", url)
+		}
+		return false
+	}
+	// GET request - Fallback to GET request if StatusCode represent fail.
+	if resp.StatusCode >= 400 {
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+
 		if err != nil {
 			return false
 		}
@@ -36,6 +54,9 @@ func (c *HTTPClient) IsLinkAccessible(url string) bool {
 
 		resp, err = c.Client.Do(req)
 		if err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				log.Println("Timeout when (GET): ", url)
+			}
 			return false
 		}
 		defer resp.Body.Close()

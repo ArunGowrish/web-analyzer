@@ -23,7 +23,7 @@ func TestIsUrlValid_URLContainWhiteSpace(t *testing.T) {
 }
 
 func TestIsUrlValid_InvalidUrl(t *testing.T) {
-	expected := "Invalid url"
+	expected := "Please enter a valid URL (e.g., https://example.com)"
 
 	got := IsUrlValid("htp:/invalid")
 	if got != expected {
@@ -32,7 +32,7 @@ func TestIsUrlValid_InvalidUrl(t *testing.T) {
 }
 
 func TestIsUrlValid_MissingScheme(t *testing.T) {
-	expected := "Invalid url"
+	expected := "Please enter a valid URL (e.g., https://example.com)"
 
 	got := IsUrlValid("www.mock.com")
 	if got != expected {
@@ -41,7 +41,7 @@ func TestIsUrlValid_MissingScheme(t *testing.T) {
 }
 
 func TestIsUrlValid_MissingHost(t *testing.T) {
-	expected := "Invalid url"
+	expected := "Please enter a valid URL (e.g., https://example.com)"
 
 	got := IsUrlValid("http://")
 	if got != expected {

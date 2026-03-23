@@ -222,6 +222,7 @@ func (a *AnalyzerService) checkLinksConcurrently(urls []string) map[string]bool 
 
 	channels := make(chan string)
 	var wg sync.WaitGroup
+	verifiedAccessibility := make(map[string]bool)
 
 	worker := func() {
 		defer wg.Done()
@@ -239,7 +240,10 @@ func (a *AnalyzerService) checkLinksConcurrently(urls []string) map[string]bool 
 		go worker()
 	}
 	for _, url := range urls {
-		channels <- url
+		if !verifiedAccessibility[url] {
+			verifiedAccessibility[url] = true
+			channels <- url
+		}
 	}
 	close(channels)
 

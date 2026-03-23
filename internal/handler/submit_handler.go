@@ -49,7 +49,7 @@ func (h *Handler) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		"InternalLinksCount":       len(result.Link.InternalLinks),
 		"InAssecessibleLinksCount": len(result.Link.InAccessibleLinks),
 		"IsLoginForm":              result.LoginForm,
-		"URL":                      url,
+		"RequestURL":               url,
 	}); err != nil {
 		log.Println("Template execution error:", err)
 		http.Error(w, "Something went wrong. Please try again.", http.StatusInternalServerError)
