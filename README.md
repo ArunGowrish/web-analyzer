@@ -28,6 +28,9 @@ http://localhost:8080
 * go test ./internal/handler -v
 * go test ./internal/service -v
 * go test ./utils -v
+* go test ./client -v
+
+* To check complete test coverage - go test ./... -cover
 
 ## Project Structure
 

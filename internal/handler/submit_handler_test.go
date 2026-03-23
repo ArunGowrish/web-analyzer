@@ -53,7 +53,7 @@ func TestSubmitHandler_ValidURL(t *testing.T) {
 		},
 	}
 
-	form := strings.NewReader("url=http://example.com")
+	form := strings.NewReader("url=http://mock.com")
 	req := httptest.NewRequest("POST", "/submit", form)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
@@ -82,7 +82,7 @@ func TestSubmitHandler_ServiceError(t *testing.T) {
 		},
 	}
 
-	form := strings.NewReader("url=http://example.com")
+	form := strings.NewReader("url=http://mock.com")
 	req := httptest.NewRequest("POST", "/submit", form)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	w := httptest.NewRecorder()
@@ -92,5 +92,40 @@ func TestSubmitHandler_ServiceError(t *testing.T) {
 	body := w.Body.String()
 	if !strings.Contains(body, "invalid URL") {
 		t.Errorf("expected error message in response, got %s", body)
+	}
+}
+
+func TestSubmitHandler_TemplateExecuteError(t *testing.T) {
+	tmpl := template.Must(template.New("mock").Funcs(template.FuncMap{
+		"fail_function": func() (string, error) {
+			return "", fmt.Errorf("template error")
+		},
+	}).Parse("{{fail_function}}"))
+
+	h := &Handler{
+		Tmpl: tmpl,
+		Analyzer: &MockAnalyzerService{
+			Result: &model.AnalysisResult{
+				HTMLVersion: "HTML5",
+			},
+			Err: nil,
+		},
+	}
+
+	form := strings.NewReader("url=http://mock.com")
+	req := httptest.NewRequest("POST", "/submit", form)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	h.SubmitHandler(w, req)
+
+	resp := w.Result()
+	body := w.Body.String()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected status code 500, got %d", resp.StatusCode)
+	}
+	if !strings.Contains(body, "Something went wrong") {
+		t.Errorf("expected error message, got %s", body)
 	}
 }

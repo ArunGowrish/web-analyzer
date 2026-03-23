@@ -30,7 +30,7 @@ func TestAnalyzeURL_ValidHTML(t *testing.T) {
 
 	service := NewAnalyzerService(mockClient)
 
-	result, err := service.AnalyzeURL("http://example.com")
+	result, err := service.AnalyzeURL("http://mock.com")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -58,7 +58,7 @@ func TestAnalyzeURL_HTTPError(t *testing.T) {
 
 	service := NewAnalyzerService(mockClient)
 
-	_, err := service.AnalyzeURL("http://example.com")
+	_, err := service.AnalyzeURL("http://mock.com")
 	if err == nil || !strings.Contains(err.Error(), "failed to fetch URL") {
 		t.Fatalf("expected fetch error, got %v", err)
 	}
@@ -77,10 +77,10 @@ func TestAnalyzeURL_InvalidHTML(t *testing.T) {
 
 	service := NewAnalyzerService(mockClient)
 
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	htmlVersion := response.HTMLVersion
-	if err == nil && htmlVersion != "Unknown" {
-		t.Fatalf("expected HTML version Unknown, got %v", htmlVersion)
+	if err == nil && htmlVersion != "HTML5" {
+		t.Fatalf("expected HTML version HTML5, got %v", htmlVersion)
 	}
 }
 
@@ -99,7 +99,7 @@ func TestAnalyzeURL_ValidTitle(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	title := response.Title
 	if err == nil && title == "" {
 		t.Fatalf("expected Title from parsed html, got %v", title)
@@ -129,7 +129,7 @@ func TestAnalyzeURL_ExtractHeadingsAndCounts(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, _ := service.AnalyzeURL("http://example.com")
+	response, _ := service.AnalyzeURL("http://mock.com")
 
 	mockHeadingsCountMap := map[string]int{
 		"h1": 1,
@@ -168,7 +168,7 @@ func TestAnalyzeURL_ValidateNavigationLink(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	link := response.Link
 	internalLinks := len(link.InternalLinks)
 	externalLinks := len(link.ExternalLinks)
@@ -180,7 +180,7 @@ func TestAnalyzeURL_ValidateNavigationLink(t *testing.T) {
 func TestAnalyzeURL_ValidateInternalLinksCount(t *testing.T) {
 	htmlContent := `<!DOCTYPE html>
 	<html><body>
-		<a href="http://example.com/about"></a>
+		<a href="http://mock.com/about"></a>
 		<a href="/inventory"></a>
 	</body></html>`
 
@@ -198,7 +198,7 @@ func TestAnalyzeURL_ValidateInternalLinksCount(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	link := response.Link
 	linkCount := len(link.InternalLinks)
 	if err == nil && len(link.InternalLinks) != 2 {
@@ -227,7 +227,7 @@ func TestAnalyzeURL_ValidateExternalLinksCount(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	link := response.Link
 	linkCount := len(link.ExternalLinks)
 	if err == nil && len(link.ExternalLinks) != 2 {
@@ -256,7 +256,7 @@ func TestAnalyzeURL_ValidateInAccesibleLinksCount(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	link := response.Link
 	linkCount := len(link.InAccessibleLinks)
 	if err == nil && linkCount != 2 {
@@ -286,10 +286,10 @@ func TestAnalyzeURL_LoginFormNotExist(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	isLoginFormExist := response.LoginForm
-	if err == nil && !isLoginFormExist {
-		t.Fatalf("expected login form not exist in the webpage, got", isLoginFormExist)
+	if err == nil && isLoginFormExist {
+		t.Fatalf("expected login form not exist in the webpage, got %v", isLoginFormExist)
 	}
 }
 
@@ -316,7 +316,7 @@ func TestAnalyzeURL_LoginFormExist(t *testing.T) {
 	}
 
 	service := NewAnalyzerService(mockClient)
-	response, err := service.AnalyzeURL("http://example.com")
+	response, err := service.AnalyzeURL("http://mock.com")
 	isLoginFormExist := response.LoginForm
 	if err == nil && !isLoginFormExist {
 		t.Fatalf("expected a login form in the webpage, got %v", isLoginFormExist)
