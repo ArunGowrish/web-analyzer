@@ -9,6 +9,11 @@ type HTTPClient struct {
 	Client *http.Client
 }
 
+type HTTPClientInterface interface {
+	FetchResults(url string) (*http.Response, error)
+	IsLinkAccessible(url string) bool
+}
+
 func NewHTTPClient() *HTTPClient {
 	return &HTTPClient{
 		Client: &http.Client{

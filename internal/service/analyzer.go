@@ -14,10 +14,10 @@ import (
 )
 
 type AnalyzerService struct {
-	HTTPClient *client.HTTPClient
+	HTTPClient client.HTTPClientInterface
 }
 
-func NewAnalyzerService(httpClient *client.HTTPClient) *AnalyzerService {
+func NewAnalyzerService(httpClient client.HTTPClientInterface) *AnalyzerService {
 	return &AnalyzerService{
 		HTTPClient: httpClient,
 	}

@@ -7,21 +7,28 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ArunGowrish/web-analyzer/internal/mocks"
 	"github.com/ArunGowrish/web-analyzer/utils"
 )
 
 func TestAnalyzeURL_ValidHTML(t *testing.T) {
 	htmlContent := `<!DOCTYPE html><html><head><title>Test</title></head><body></body></html>`
 
-	service := &AnalyzerService{
-		HTTPGet: func(url string) (*http.Response, error) {
+	// Mock HTTP client
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader(htmlContent)),
 				Header:     make(http.Header),
 			}, nil
 		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
 	}
+
+	service := NewAnalyzerService(mockClient)
 
 	result, err := service.AnalyzeURL("http://example.com")
 	if err != nil {
@@ -33,7 +40,8 @@ func TestAnalyzeURL_ValidHTML(t *testing.T) {
 }
 
 func TestAnalyzeURL_InvalidURL(t *testing.T) {
-	service := &AnalyzerService{}
+	mockClient := &mocks.HTTPClientMock{}
+	service := NewAnalyzerService(mockClient)
 
 	_, err := service.AnalyzeURL("invalid-url")
 	if err == nil {
@@ -42,11 +50,13 @@ func TestAnalyzeURL_InvalidURL(t *testing.T) {
 }
 
 func TestAnalyzeURL_HTTPError(t *testing.T) {
-	service := &AnalyzerService{
-		HTTPGet: func(url string) (*http.Response, error) {
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
 			return nil, errors.New("network error")
 		},
 	}
+
+	service := NewAnalyzerService(mockClient)
 
 	_, err := service.AnalyzeURL("http://example.com")
 	if err == nil || !strings.Contains(err.Error(), "failed to fetch URL") {
@@ -55,9 +65,8 @@ func TestAnalyzeURL_HTTPError(t *testing.T) {
 }
 
 func TestAnalyzeURL_InvalidHTML(t *testing.T) {
-	service := &AnalyzerService{
-		HTTPGet: func(url string) (*http.Response, error) {
-			// Simulate invalid HTML which fails parsing
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader("<html></ht>")),
@@ -65,6 +74,8 @@ func TestAnalyzeURL_InvalidHTML(t *testing.T) {
 			}, nil
 		},
 	}
+
+	service := NewAnalyzerService(mockClient)
 
 	response, err := service.AnalyzeURL("http://example.com")
 	htmlVersion := response.HTMLVersion
@@ -74,16 +85,20 @@ func TestAnalyzeURL_InvalidHTML(t *testing.T) {
 }
 
 func TestAnalyzeURL_ValidTitle(t *testing.T) {
-	service := &AnalyzerService{
-		HTTPGet: func(url string) (*http.Response, error) {
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader("<html><head><title>Test title</title></head></html>")),
 				Header:     make(http.Header),
 			}, nil
 		},
+		IsLinkAccessibleFunc: func(url string) bool {
+			return true
+		},
 	}
 
+	service := NewAnalyzerService(mockClient)
 	response, err := service.AnalyzeURL("http://example.com")
 	title := response.Title
 	if err == nil && title == "" {
@@ -102,15 +117,18 @@ func TestAnalyzeURL_ExtractHeadingsAndCounts(t *testing.T) {
 	<h6></h6><h6></h6>
 	</body></html>`
 
-	service := &AnalyzerService{
-		HTTPGet: func(url string) (*http.Response, error) {
+	mockClient := &mocks.HTTPClientMock{
+		FetchResultsFunc: func(url string) (*http.Response, error) {
 			return &http.Response{
 				StatusCode: 200,
 				Body:       io.NopCloser(strings.NewReader(htmlContent)),
 				Header:     make(http.Header),
 			}, nil
 		},
+		IsLinkAccessibleFunc: func(url string) bool { return true },
 	}
+
+	service := NewAnalyzerService(mockClient)
 	response, _ := service.AnalyzeURL("http://example.com")
 
 	mockHeadingsCountMap := map[string]int{
