@@ -1,0 +1,73 @@
+Web Analyzer – Build & Deployment Guide
+
+1. Prerequisites
+Go 1.21+ installed
+Git installed
+Network access to the URLs to be analyzed
+
+2. Clone Repository
+git clone https://github.com/YourUsername/web-analyzer.git
+cd web-analyzer
+
+3. Install Dependencies
+go mod tidy
+
+4. Build Application
+go build -o web-analyzer main.go
+
+5. Run Locally
+./web-analyzer
+By default, the server runs on http://localhost:8080
+Open in browser and submit a webpage URL to analyze
+
+6. Run Tests
+go test ./... -v
+
+7. Deployment
+Use Docker or deploy as a standalone binary on a server
+docker build -f Dockerfile -t web-analyzer .
+
+Expose the service on desired port
+docker run -p 8080:8080 web-analyzer
+
+Key Assumptions & Decisions
+
+1. Timeouts & Concurrency
+	*	Each HTTP request has a configurable timeout (default 8 seconds).
+	*	Concurrency limited via worker pool (10 workers) to prevent overloading system/network.
+
+2. Link Analysis
+	*	Deduplicates URLs before checking accessibility.
+	*	Checks internal vs external links based on domain comparison.
+	*	Distinguishes inaccessible links (HTTP errors, timeout, network failures).
+
+3. HTML Parsing
+	*	Assumes standard HTML structure.
+	* 	Heuristic used to detect login forms (looks for <form> with password input).
+
+4. Templates
+	*	Uses html/template to render results.
+	*	Handles errors gracefully; displays meaningful messages if URL is invalid.
+
+5. Fallbacks
+	*	For link accessibility, HEAD requests attempted first, fallback to GET if HEAD fails.
+	*	Retry logic can be added for slow/failing requests.
+
+6. Browser-like Headers
+	*	User-Agent and Accept headers set to imitate a real browser request.
+
+
+Suggestions on possible improvements of the application
+
+1. Better link classification
+    * Normalize URLs (/about → absolute)
+    * Handle subdomains (test.domain.com)
+
+2. Improve inaccessible link detection
+    * Based on different error status codes - 4xx → “Client error” or 5xx → “Server error”
+
+3. Performance Improvements
+    * Configurable workers count and request timeout
+
+4. UX / UI Improvements
+    * Showing results in a folding manner to see more details
