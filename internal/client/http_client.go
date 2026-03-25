@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -49,8 +50,7 @@ func (c *HTTPClient) IsLinkAccessible(url string) bool {
 		if err != nil {
 			return false
 		}
-		req.Header.Set("User-Agent", "Mozilla/5.0")
-		req.Header.Set("Accept", "text/html")
+		c.setCommonHeaders(req)
 
 		resp, err = c.Client.Do(req)
 		if err != nil {
@@ -68,5 +68,25 @@ func (c *HTTPClient) IsLinkAccessible(url string) bool {
 }
 
 func (c *HTTPClient) FetchResults(requestUrl string) (resp *http.Response, err error) {
-	return c.Client.Get(requestUrl)
+	req, err := http.NewRequest("GET", requestUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	c.setCommonHeaders(req)
+	response, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode >= 400 {
+		return nil, fmt.Errorf("HTTP error: Failed to fetch the webpage.")
+	}
+	return response, nil
+}
+
+func (c *HTTPClient) setCommonHeaders(req *http.Request) {
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Set("Connection", "keep-alive")
 }

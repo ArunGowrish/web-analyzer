@@ -35,20 +35,20 @@ func (a *AnalyzerService) AnalyzeURL(requestUrl string) (*model.AnalysisResult, 
 
 	resp, err := a.HTTPClient.FetchResults(requestUrl)
 	if err != nil {
-		return nil, errors.New("failed to fetch URL")
+		return nil, errors.New("Unable to fetch the webpage. Please check the URL or try again later.")
 	}
 	defer resp.Body.Close()
 
 	// Parse HTML
 	doc, err := html.Parse(resp.Body)
 	if err != nil {
-		return nil, errors.New("failed to parse HTML")
+		return nil, errors.New("The webpage could not be processed. Please try a different URL.")
 	}
 
 	// Find the domain from the url
 	baseURL, err := url.Parse(requestUrl)
 	if err != nil {
-		return nil, errors.New("failed to parse URL")
+		return nil, errors.New("The webpage could not be processed. Please try a different URL.")
 	}
 
 	htmlVersion := getHTMLVersion(doc)
@@ -220,7 +220,7 @@ func (a *AnalyzerService) checkLinksConcurrently(urls []string) map[string]bool 
 	results := make(map[string]bool)
 	var mu sync.Mutex
 
-	channels := make(chan string)
+	channels := make(chan string, 100)
 	var wg sync.WaitGroup
 	verifiedAccessibility := make(map[string]bool)
 
