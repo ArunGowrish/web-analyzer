@@ -59,7 +59,7 @@ func TestAnalyzeURL_HTTPError(t *testing.T) {
 	service := NewAnalyzerService(mockClient)
 
 	_, err := service.AnalyzeURL("http://mock.com")
-	if err == nil || !strings.Contains(err.Error(), "failed to fetch URL") {
+	if err == nil || !strings.Contains(err.Error(), "Unable to fetch the webpage. Please check the URL or try again later.") {
 		t.Fatalf("expected fetch error, got %v", err)
 	}
 }
